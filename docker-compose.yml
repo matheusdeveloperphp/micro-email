@@ -1,0 +1,58 @@
+services:
+  micro_mail:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        user: matheus
+        uid: 1000
+    image: laravel-app-micro-mail
+    restart: unless-stopped
+    working_dir: /var/www/
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis_micro_mail
+    networks:
+      - micromail
+
+  nginx_micro_mail:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "8005:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx/:/etc/nginx/conf.d/
+    depends_on:
+      - micro_mail
+    networks:
+      - micromail
+
+  queue_micro_mail:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+      args:
+        user: matheus
+        uid: 1000
+    image: laravel-app-micro-mail
+    restart: unless-stopped
+    working_dir: /var/www/
+    command: php artisan queue:work
+    volumes:
+      - ./:/var/www
+    depends_on:
+      - redis_micro_mail
+    networks:
+      - micromail
+
+  redis_micro_mail:
+    image: redis:latest
+    restart: unless-stopped
+    networks:
+      - micromail
+
+networks:
+  micromail:
+    driver: bridge
